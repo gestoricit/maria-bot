@@ -149,12 +149,12 @@ Esforço **30 min** pra audit completo. Marcar como **AT2 (P2)**.
 ## 3 — Plano de execução
 
 ### Sprint 0 — fundação (1-2h)
-| Item | Esforço |
-|---|---|
-| VC1: git init + push pra GitHub | 5 min |
-| AT1: backup automatizado das sessions Baileys | 20 min |
-| LG1: pm2-logrotate | 10 min |
-| RT1: rate limit per-JID | 30 min |
+| Item | Esforço | Status |
+|---|---|---|
+| VC1: git init + push pra GitHub | 5 min | ✅ **commit c112205** |
+| AT1: backup automatizado das sessions Baileys | 20 min | ✅ **scripts/backup-auth.sh + /etc/cron.d/maria-bot-backup** (cron 03:15 daily, retenção 14d) |
+| LG1: pm2-logrotate | 10 min | ✅ **pm2 install pm2-logrotate** (max 50M × 5 backups, compress) |
+| RT1: rate limit per-JID | 30 min | ✅ **rateLimitCheck() em src/index.js** (30 dispatches / 60min default) |
 
 ### Sprint 1 — robustez (2-3h)
 | Item | Esforço |

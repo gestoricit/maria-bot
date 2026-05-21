@@ -18,12 +18,34 @@ const logger = pino({ level: config.logLevel });
 const sessions = new Map(); // jid -> sessionId
 const sentByBot = new Set(); // key.id de msgs enviadas pelo bot (evita loop em self-chat)
 
+// RT1 — rate limit per-JID. Mesmo entre números autorizados, sem limite o bot
+// pode queimar quota do plano Max em rajada (usuário entusiasmado ou loop bug).
+// Map jid -> array de timestamps (ms). Limpa entradas fora da janela on read.
+const rateLimitState = new Map();
+
 const stats = {
   startedAt: Date.now(),
   totalDispatches: 0,
   lastDispatchAt: null,
   lastError: null,
+  rateLimitedHits: 0,
 };
+
+function rateLimitCheck(jid) {
+  const now = Date.now();
+  const windowMs = config.rateLimitWindowMs;
+  const maxPerWindow = config.rateLimitMaxPerWindow;
+  const arr = (rateLimitState.get(jid) || []).filter((t) => now - t < windowMs);
+  if (arr.length >= maxPerWindow) {
+    rateLimitState.set(jid, arr);
+    const oldestInWindow = arr[0];
+    const retryMs = windowMs - (now - oldestInWindow);
+    return { allowed: false, retryAfterSec: Math.ceil(retryMs / 1000) };
+  }
+  arr.push(now);
+  rateLimitState.set(jid, arr);
+  return { allowed: true };
+}
 
 let activeSocket = null; // referencia para /reconnect e shutdown handlers
 
@@ -171,6 +193,20 @@ async function handleMessage(sock, msg) {
 
   if (!text && !attachments.length) return;
 
+  // RT1 — antes de invocar Claude (caro), confirma rate limit. Comandos
+  // administrativos (/ping, /help, /stats, /reset, /reconnect) já retornaram
+  // acima sem chegar aqui, então não consomem o budget.
+  const rl = rateLimitCheck(jid);
+  if (!rl.allowed) {
+    stats.rateLimitedHits += 1;
+    const mins = Math.ceil(rl.retryAfterSec / 60);
+    await send(sock, jid, {
+      text: `Rate limit: ${config.rateLimitMaxPerWindow} mensagens/${Math.round(config.rateLimitWindowMs / 60000)}min. Tente em ~${mins} min.`,
+    });
+    logger.warn({ jid, retryAfterSec: rl.retryAfterSec }, 'Rate limit excedido');
+    return;
+  }
+
   // Reacao indicando processamento
   await send(sock, jid, { react: { text: '⏳', key: msg.key } });
 
@@ -249,6 +285,7 @@ function statsText() {
     `Ultimo dispatch: ${lastDisp}`,
     `Drive: ${config.driveRemoteName ? `OK (${config.driveRemoteName})` : 'nao configurado'}`,
     `Numeros autorizados: ${config.allowedNumbers.length}`,
+    `Rate limit hits: ${stats.rateLimitedHits} (limite: ${config.rateLimitMaxPerWindow}/${Math.round(config.rateLimitWindowMs / 60000)}min)`,
     lastErr,
   ].join('\n');
 }

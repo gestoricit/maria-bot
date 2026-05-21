@@ -27,6 +27,9 @@ export const config = {
   rcloneBin: process.env.RCLONE_BIN || 'rclone',
   driveRemoteName: process.env.DRIVE_REMOTE_NAME || '',
   driveFolder: process.env.DRIVE_FOLDER || 'mar.IA Out',
+  // RT1 — rate limit per-JID (default 30 dispatches / 60 min).
+  rateLimitMaxPerWindow: Number(process.env.RATE_LIMIT_MAX || 30),
+  rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MIN || 60) * 60 * 1000,
 };
 
 export const normalizeJid = (jid) => (jid || '').split('@')[0].split(':')[0];
