@@ -157,12 +157,12 @@ Esforço **30 min** pra audit completo. Marcar como **AT2 (P2)**.
 | RT1: rate limit per-JID | 30 min | ✅ **rateLimitCheck() em src/index.js** (30 dispatches / 60min default) |
 
 ### Sprint 1 — robustez (2-3h)
-| Item | Esforço |
-|---|---|
-| AC1a: `.claude/settings.json` com permissions explícitas | 1h |
-| AT2: auditoria de `attachments.js` | 30 min |
-| CL1: fixar CLAUDE_BIN absoluto + documentar versão | 5 min |
-| LG2: `/metrics` endpoint ou alert cron | 30 min |
+| Item | Esforço | Status |
+|---|---|---|
+| AC1a: `.claude/settings.json` com permissions explícitas | 1h | ✅ **implementado 2026-05-20** — 66 deny rules (paths sensíveis, Bash perigoso, WebFetch/Search) + 40 allow rules (Google MCPs, inbox/outbox, comandos seguros). Cópia versionada em `docs/claude-settings.sample.json`. |
+| AT2: auditoria de `attachments.js` | 30 min | pendente |
+| CL1: fixar CLAUDE_BIN absoluto + documentar versão | 5 min | pendente |
+| LG2: `/metrics` endpoint ou alert cron | 30 min | pendente |
 
 ### Sprint 2 — opcional
 | Item | Esforço |
